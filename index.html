@@ -1,0 +1,353 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>Поиск клиентов · OpenStreetMap</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Roboto+Mono:wght@400;500&display=swap');
+    :root {
+      --ink: #172420; --muted: #68756e; --paper: #f4f4ef; --white: #fff;
+      --line: #e1e5de; --green: #126b4c; --green-dark: #0c4d39; --mint: #dff1e7;
+      --orange: #d86b3e; --yellow: #f0c85c; --red: #9b3e31;
+      --shadow: 0 12px 36px rgba(32, 54, 43, .06);
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--paper); color: var(--ink); font: 14px/1.45 Manrope, sans-serif; }
+    button, input { font: inherit; } button { cursor: pointer; }
+    .topbar { height: 64px; padding: 0 28px; display: flex; align-items: center; justify-content: space-between; background: var(--green-dark); color: white; }
+    .brand { display: flex; align-items: center; gap: 11px; font-weight: 800; }
+    .brand-mark { width: 32px; height: 32px; display: grid; place-items: center; border-radius: 7px; color: var(--green-dark); background: var(--yellow); font-size: 18px; }
+    .brand small { display: block; font-weight: 500; color: #b9d5c8; font-size: 11px; }
+    .top-actions { display: flex; gap: 10px; align-items: center; }
+    .top-actions a, .top-actions button { border: 0; color: #e0ece6; text-decoration: none; background: transparent; font-size: 12px; }
+    .top-actions a:hover, .top-actions button:hover { color: white; }
+    main { max-width: 1400px; margin: auto; padding: 24px 28px 48px; }
+    .intro { display: flex; justify-content: space-between; align-items: end; gap: 20px; margin-bottom: 18px; }
+    h1 { margin: 0; font-size: 25px; line-height: 1.2; }
+    .intro p { margin: 6px 0 0; color: var(--muted); font-size: 13px; }
+    .api-link { color: var(--green); font-weight: 700; font-size: 12px; white-space: nowrap; }
+    .search-panel { background: var(--white); border: 1px solid var(--line); border-radius: 7px; padding: 18px; box-shadow: var(--shadow); }
+    .fields { display: grid; grid-template-columns: minmax(190px, 1.2fr) minmax(190px, 1fr) 140px auto; gap: 12px; align-items: end; }
+    label { display: block; color: #43524a; font-size: 11px; font-weight: 800; margin-bottom: 6px; }
+    input { width: 100%; height: 42px; padding: 0 12px; border: 1px solid #d8ded8; border-radius: 5px; outline: none; background: #fbfcfa; color: var(--ink); }
+    select { width: 100%; height: 42px; padding: 0 10px; border: 1px solid #d8ded8; border-radius: 5px; background: #fbfcfa; color: var(--ink); font: inherit; }
+    input:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(18, 107, 76, .1); }
+    input::placeholder { color: #9aa39d; }
+    .primary { height: 42px; border: 0; border-radius: 5px; padding: 0 18px; background: var(--green); color: white; font-weight: 800; white-space: nowrap; }
+    .primary:hover { background: var(--green-dark); } .primary:disabled { opacity: .55; cursor: wait; }
+    .hint { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 12px; color: var(--muted); font-size: 11px; }
+    .hint span::before { content: '•'; color: var(--orange); margin-right: 6px; }
+    .notice { margin-top: 12px; padding: 10px 12px; background: #fff7e3; border-left: 3px solid var(--yellow); color: #66552a; font-size: 11px; }
+    .toolbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin: 23px 0 10px; }
+    .toolbar-left { display: flex; align-items: baseline; gap: 10px; }
+    .toolbar h2 { margin: 0; font-size: 15px; }
+    .result-count { color: var(--muted); font: 11px 'Roboto Mono', monospace; }
+    .toolbar-right { display: flex; gap: 8px; align-items: center; }
+    .toggle { display: inline-flex; align-items: center; gap: 8px; color: #43524a; font-size: 11px; cursor: pointer; }
+    .toggle input { accent-color: var(--green); width: 15px; height: 15px; margin: 0; }
+    .secondary { min-height: 34px; border: 1px solid #d8ded8; border-radius: 5px; padding: 0 11px; background: white; color: var(--ink); font-size: 11px; font-weight: 700; }
+    .secondary:hover { border-color: var(--green); color: var(--green); } .secondary:disabled { opacity: .5; cursor: default; }
+    .table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 6px; background: white; box-shadow: var(--shadow); }
+    table { width: 100%; border-collapse: collapse; text-align: left; }
+    thead { background: #eef3ee; }
+    th { padding: 10px 12px; color: #65736b; font-size: 10px; text-transform: uppercase; letter-spacing: .05em; white-space: nowrap; }
+    td { padding: 12px; vertical-align: top; border-top: 1px solid #edf0ec; font-size: 12px; }
+    tbody tr:hover { background: #fbfcfa; }
+    .business-name { font-weight: 800; font-size: 13px; }
+    .category { display: inline-block; margin-top: 5px; color: #68756e; font-size: 10px; }
+    .muted { color: #768179; } .mono { font: 11px 'Roboto Mono', monospace; white-space: nowrap; }
+    a { color: var(--green); text-decoration: none; } a:hover { text-decoration: underline; }
+    .status { display: inline-flex; gap: 6px; align-items: center; color: #176449; font-size: 10px; font-weight: 700; white-space: nowrap; }
+    .status::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: #43a779; }
+    .status.has-link { color: #8d4c24; } .status.has-link::before { background: var(--orange); }
+    details { min-width: 115px; max-width: 300px; }
+    details summary { color: var(--green); cursor: pointer; font-size: 11px; font-weight: 800; }
+    .detail-list { max-height: 330px; overflow: auto; margin: 9px 0 0; }
+    .detail-list div { padding: 5px 0; border-top: 1px solid #edf0ec; }
+    .detail-list dt { color: var(--muted); font-size: 10px; font-weight: 700; }
+    .detail-list dd { margin: 2px 0 0; overflow-wrap: anywhere; font-size: 11px; white-space: pre-wrap; }
+    .detail-list a { overflow-wrap: anywhere; }
+    .empty { padding: 54px 20px; text-align: center; color: var(--muted); }
+    .empty strong { display: block; margin-bottom: 5px; color: var(--ink); font-size: 14px; }
+    .empty-mark { margin: 0 auto 12px; width: 42px; height: 42px; display: grid; place-items: center; border: 1px solid #dce5dc; border-radius: 50%; color: var(--green); font-size: 19px; }
+    .statusbar { min-height: 22px; margin-top: 10px; color: var(--muted); font-size: 11px; } .statusbar.error { color: var(--red); }
+    .load-more { display: block; margin: 12px auto; }
+    @media (max-width: 850px) {
+      .fields { grid-template-columns: 1fr 1fr; }
+      .toolbar { align-items: flex-start; flex-direction: column; } .toolbar-right { flex-wrap: wrap; }
+    }
+    @media (max-width: 560px) {
+      .topbar { height: 56px; padding: 0 15px; } .top-actions a { display: none; }
+      main { padding: 20px 14px 34px; } .intro { align-items: flex-start; flex-direction: column; gap: 8px; }
+      h1 { font-size: 21px; } .search-panel { padding: 14px; }
+      .fields { grid-template-columns: 1fr; } .fields .primary { width: 100%; }
+      .toolbar-left { align-items: flex-start; flex-direction: column; gap: 2px; }
+      .toolbar-right { width: 100%; justify-content: space-between; }
+      .table-wrap { border-radius: 5px; } table, thead, tbody, th, td, tr { display: block; } thead { display: none; }
+      tbody tr { display: grid; grid-template-columns: 1fr auto; gap: 3px 8px; padding: 12px; border-top: 1px solid var(--line); }
+      td { border: 0; padding: 2px 0; } td:nth-child(1), td:nth-child(2), td:nth-child(7) { grid-column: 1 / -1; }
+      td:nth-child(3), td:nth-child(4), td:nth-child(5) { grid-column: 1; } td:nth-child(6) { grid-column: 2; grid-row: 3 / span 3; align-self: center; }
+      .mono { white-space: normal; }
+    }
+    @media (prefers-reduced-motion: no-preference) {
+      main { animation: arrive .35s ease-out both; }
+      @keyframes arrive { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand"><span class="brand-mark">⌕</span><span>Поиск клиентов<small>OpenStreetMap · бесплатно</small></span></div>
+    <nav class="top-actions"><a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">Об источнике данных</a><button id="close-app" type="button" title="Остановить локальное приложение">Закрыть приложение</button></nav>
+  </header>
+  <main>
+    <section class="intro">
+      <div><h1>Найдите магазины рядом с городом</h1><p>Компании и контакты из открытой карты OpenStreetMap</p></div>
+      <a class="api-link" href="https://www.openstreetmap.org/" target="_blank" rel="noreferrer">OpenStreetMap ↗</a>
+    </section>
+    <section class="search-panel" aria-label="Параметры поиска">
+      <form id="search-form">
+        <div class="fields">
+          <div><label for="category">Категория</label><select id="category" required>
+            <option value="flowers" selected>Цветы — магазины цветов</option>
+            <option value="all_shops">Все магазины</option>
+            <option value="groceries">Продукты — супермаркеты и магазины</option>
+            <option value="clothes">Одежда</option>
+            <option value="shoes">Обувь</option>
+            <option value="electronics">Электроника и телефоны</option>
+            <option value="cosmetics">Косметика и парфюмерия</option>
+            <option value="furniture">Мебель и интерьер</option>
+            <option value="toys">Игрушки</option>
+            <option value="pets">Товары для животных</option>
+            <option value="bakery">Пекарни</option>
+            <option value="pharmacy">Аптеки</option>
+            <option value="cafe">Кафе</option>
+            <option value="restaurant">Рестораны</option>
+            <option value="beauty_salon">Парикмахерские и салоны красоты</option>
+            <option value="optician">Оптика</option>
+            <option value="gifts">Подарки и сувениры</option>
+            <option value="custom_name">По названию</option>
+          </select></div>
+          <div><label for="city-select">Город</label><select id="city-select" required><option value="">Выберите город</option><option value="__other__">Другой город…</option></select><input id="city" maxlength="200" placeholder="Введите название города" hidden><datalist id="city-list">
+            <option value="Москва, Россия"><option value="Санкт-Петербург, Россия"><option value="Новосибирск, Россия"><option value="Екатеринбург, Россия"><option value="Казань, Россия"><option value="Нижний Новгород, Россия"><option value="Челябинск, Россия"><option value="Красноярск, Россия"><option value="Самара, Россия"><option value="Уфа, Россия"><option value="Ростов-на-Дону, Россия"><option value="Краснодар, Россия"><option value="Омск, Россия"><option value="Воронеж, Россия"><option value="Пермь, Россия"><option value="Волгоград, Россия"><option value="Саратов, Россия"><option value="Тюмень, Россия"><option value="Тольятти, Россия"><option value="Ижевск, Россия"><option value="Барнаул, Россия"><option value="Ульяновск, Россия"><option value="Иркутск, Россия"><option value="Хабаровск, Россия"><option value="Ярославль, Россия"><option value="Владивосток, Россия"><option value="Махачкала, Россия"><option value="Томск, Россия"><option value="Оренбург, Россия"><option value="Кемерово, Россия"><option value="Новокузнецк, Россия"><option value="Рязань, Россия"><option value="Астрахань, Россия"><option value="Набережные Челны, Россия"><option value="Пенза, Россия"><option value="Липецк, Россия"><option value="Киров, Россия"><option value="Чебоксары, Россия"><option value="Калининград, Россия"><option value="Балашиха, Россия"><option value="Курск, Россия"><option value="Ставрополь, Россия"><option value="Сочи, Россия"><option value="Улан-Удэ, Россия"><option value="Тверь, Россия"><option value="Магнитогорск, Россия"><option value="Иваново, Россия"><option value="Брянск, Россия"><option value="Белгород, Россия"><option value="Сургут, Россия"><option value="Владимир, Россия"><option value="Нижний Тагил, Россия"><option value="Архангельск, Россия"><option value="Чита, Россия"><option value="Калуга, Россия"><option value="Смоленск, Россия"><option value="Волжский, Россия"><option value="Саранск, Россия"><option value="Череповец, Россия"><option value="Вологда, Россия"><option value="Якутск, Россия"><option value="Подольск, Россия"><option value="Тамбов, Россия"><option value="Грозный, Россия"><option value="Мурманск, Россия"><option value="Кострома, Россия"><option value="Петрозаводск, Россия"><option value="Новороссийск, Россия"><option value="Йошкар-Ола, Россия"><option value="Химки, Россия"><option value="Таганрог, Россия"><option value="Комсомольск-на-Амуре, Россия"><option value="Стерлитамак, Россия"><option value="Орел, Россия"><option value="Энгельс, Россия"><option value="Шахты, Россия"><option value="Сыктывкар, Россия"><option value="Бийск, Россия"><option value="Нижневартовск, Россия"><option value="Нальчик, Россия"><option value="Дзержинск, Россия"><option value="Братск, Россия"><option value="Орск, Россия"><option value="Ангарск, Россия"><option value="Старый Оскол, Россия"><option value="Великий Новгород, Россия"><option value="Псков, Россия"><option value="Южно-Сахалинск, Россия"><option value="Королев, Россия"><option value="Мытищи, Россия"><option value="Люберцы, Россия"><option value="Электросталь, Россия"><option value="Коломна, Россия"><option value="Одинцово, Россия"><option value="Домодедово, Россия"><option value="Красногорск, Россия"><option value="Копейск, Россия"><option value="Прокопьевск, Россия"><option value="Рыбинск, Россия"><option value="Абакан, Россия"><option value="Уссурийск, Россия"><option value="Благовещенск, Россия"><option value="Пятигорск, Россия"><option value="Кисловодск, Россия"><option value="Ессентуки, Россия">
+          </datalist></div>
+          <div><label for="radius">Радиус от центра</label><select id="radius"><option value="2000">2 км</option><option value="5000" selected>5 км</option><option value="10000">10 км</option></select></div>
+          <button class="primary" id="search-button" type="submit">Найти</button>
+          <div id="custom-name-field" hidden><label for="custom-name">Название для поиска</label><input id="custom-name" maxlength="100" placeholder="Введите название компании"></div>
+        </div>
+      </form>
+      <div class="hint"><span>Ключ и регистрация не нужны</span><span>Источники: OpenStreetMap и связанная Wikidata</span><span>Радиус считается от центра выбранного города</span></div>
+      <div class="notice">«Публичный Telegram-бот не найден» значит, что в OpenStreetMap нет публичной ссылки на аккаунт с именем, оканчивающимся на bot. У компании всё ещё может быть незаписанный в карту или закрытый бот. Данные о магазинах и контактах заполнены не везде.</div>
+    </section>
+    <section aria-label="Результаты поиска">
+      <div class="toolbar">
+        <div class="toolbar-left"><h2>Результаты</h2><span id="result-count" class="result-count">Поиск ещё не запускался</span></div>
+        <div class="toolbar-right"><label class="toggle"><input id="hide-bots" type="checkbox" checked> Скрыть найденных ботов</label><button class="secondary" id="export-csv" type="button" disabled>↓ CSV</button></div>
+      </div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Компания</th><th>Адрес</th><th>Телефон</th><th>Email</th><th>Сайт</th><th>Telegram-бот</th><th>Информация</th></tr></thead>
+        <tbody id="results-body"><tr><td class="empty" colspan="7"><span class="empty-mark">⌕</span><strong>Пока нет результатов</strong>Укажите категорию и город, чтобы начать бесплатный поиск.</td></tr></tbody>
+      </table></div>
+      <div id="status" class="statusbar" role="status" aria-live="polite"></div>
+      <div class="hint"><span>Карта и контакты: © участники OpenStreetMap</span><a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">Лицензия ODbL</a></div>
+    </section>
+  </main>
+  <script>
+    const ACCESS_TOKEN = __ACCESS_TOKEN__;
+    const records = [];
+    const form = document.querySelector('#search-form');
+    const body = document.querySelector('#results-body');
+    const statusLine = document.querySelector('#status');
+    const countLine = document.querySelector('#result-count');
+    const searchButton = document.querySelector('#search-button');
+    const categorySelect = document.querySelector('#category');
+    const customNameField = document.querySelector('#custom-name-field');
+    const citySelect = document.querySelector('#city-select');
+    const cityInput = document.querySelector('#city');
+    for (const option of document.querySelectorAll('#city-list option')) {
+      const cityOption = document.createElement('option');
+      cityOption.value = option.value;
+      cityOption.textContent = option.value.replace(/, Россия$/, '');
+      citySelect.insertBefore(cityOption, citySelect.querySelector('[value="__other__"]'));
+    }
+
+    async function request(path, payload = {}) {
+      const response = await fetch(path, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Local-Token': ACCESS_TOKEN },
+        body: JSON.stringify(payload)
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || `Ошибка ${response.status}`);
+      return data;
+    }
+
+    function safeLink(url) {
+      try {
+        const value = /^(https?:|tel:|mailto:)/i.test(url) ? url : `https://${url}`;
+        const parsed = new URL(value);
+        return ['http:', 'https:', 'tel:', 'mailto:'].includes(parsed.protocol) ? parsed.href : '';
+      } catch { return ''; }
+    }
+
+    function addCell(row, content, className = '') {
+      const cell = document.createElement('td');
+      if (className) cell.className = className;
+      if (content instanceof Node) cell.append(content);
+      else cell.textContent = content || '—';
+      row.append(cell);
+    }
+
+    function link(text, href) {
+      const anchor = document.createElement('a');
+      anchor.href = safeLink(href);
+      anchor.textContent = text;
+      anchor.target = '_blank';
+      anchor.rel = 'noreferrer';
+      return anchor;
+    }
+
+    function appendDetail(list, label, value, href = '') {
+      if (value === undefined || value === null || value === '') return;
+      const row = document.createElement('div');
+      const term = document.createElement('dt');
+      term.textContent = label;
+      const description = document.createElement('dd');
+      if (href) description.append(link(String(value), href));
+      else description.textContent = String(value);
+      row.append(term, description);
+      list.append(row);
+    }
+
+    function detailsCell(item) {
+      const details = document.createElement('details');
+      const summary = document.createElement('summary');
+      summary.textContent = 'Все данные';
+      const list = document.createElement('dl');
+      list.className = 'detail-list';
+      appendDetail(list, 'Адрес', item.address);
+      appendDetail(list, 'Телефон', item.phone);
+      appendDetail(list, 'Email', item.email, item.email ? `mailto:${item.email}` : '');
+      appendDetail(list, 'Сайт', item.website, item.website);
+      appendDetail(list, 'График работы', item.opening_hours);
+      appendDetail(list, 'Описание', item.description);
+      appendDetail(list, 'Бренд / оператор', item.brand);
+      appendDetail(list, 'Telegram', item.telegram_url, item.telegram_url);
+      const wikidata = item.wikidata || {};
+      appendDetail(list, 'Wikidata: название', wikidata.label);
+      appendDetail(list, 'Wikidata: описание', wikidata.description);
+      appendDetail(list, 'Wikidata: официальное название', wikidata.official_name);
+      appendDetail(list, 'Wikidata: сайт', wikidata.website, wikidata.website);
+      appendDetail(list, 'Wikidata: телефон', wikidata.phone);
+      appendDetail(list, 'Wikidata: email', wikidata.email, wikidata.email ? `mailto:${wikidata.email}` : '');
+      appendDetail(list, 'Wikidata: основана', wikidata.founded);
+      appendDetail(list, 'Wikidata: отрасль (ID)', wikidata.industry);
+      appendDetail(list, 'Wikidata: страна (ID)', wikidata.country);
+      appendDetail(list, 'Wikidata: логотип', wikidata.logo);
+      appendDetail(list, 'Wikidata: изображение', wikidata.image);
+      appendDetail(list, 'Wikidata: русский Wikipedia', wikidata.wikipedia_ru, wikidata.wikipedia_ru);
+      appendDetail(list, 'Wikidata: English Wikipedia', wikidata.wikipedia_en, wikidata.wikipedia_en);
+      appendDetail(list, 'Wikidata: запись', wikidata.id, wikidata.entity_url);
+      for (const [label, value] of Object.entries(wikidata.socials || {})) {
+        appendDetail(list, `Wikidata: ${label}`, value);
+      }
+      for (const [label, value] of Object.entries(item.socials || {})) {
+        appendDetail(list, label, value, value);
+      }
+      appendDetail(list, 'Объект OpenStreetMap', item.id, `https://www.openstreetmap.org/${item.id}`);
+      appendDetail(list, 'Координаты', item.latitude != null && item.longitude != null ? `${item.latitude}, ${item.longitude}` : '');
+      for (const [key, value] of Object.entries(item.all_tags || {})) {
+        appendDetail(list, `Тег: ${key}`, value);
+      }
+      details.append(summary, list);
+      return details;
+    }
+
+    function render() {
+      const filtered = document.querySelector('#hide-bots').checked ? records.filter(item => !item.bot_found) : records;
+      body.replaceChildren();
+      if (!filtered.length) {
+        const row = document.createElement('tr');
+        const cell = document.createElement('td');
+        cell.colSpan = 7; cell.className = 'empty';
+        const title = document.createElement('strong');
+        title.textContent = records.length ? 'Все найденные карточки содержат публичные bot-ссылки' : 'Пока нет результатов';
+        cell.append(title, document.createTextNode(records.length ? 'Снимите фильтр, чтобы показать их.' : 'Укажите категорию и город, чтобы начать бесплатный поиск.'));
+        row.append(cell); body.append(row);
+      } else {
+        for (const item of filtered) {
+          const row = document.createElement('tr');
+          const company = document.createElement('div');
+          company.className = 'business-name'; company.textContent = item.name;
+          const category = document.createElement('div');
+          category.className = 'category'; category.textContent = item.category || 'Категория не указана';
+          company.append(category); addCell(row, company); addCell(row, item.address);
+          const phone = item.phone ? link(item.phone, `tel:${item.phone.replace(/[^+\d,;]/g, '')}`) : '—';
+          addCell(row, phone, 'mono');
+          if (item.email) addCell(row, link(item.email, `mailto:${item.email}`));
+          else addCell(row, '—', 'muted');
+          if (item.website) addCell(row, link(item.website, item.website.split(',')[0].trim()));
+          else addCell(row, '—', 'muted');
+          const status = document.createElement('span');
+          status.className = `status${item.bot_found || item.telegram_url ? ' has-link' : ''}`;
+          status.title = item.telegram_status;
+          if (item.telegram_url) status.append(link(item.bot_found ? 'Открыть бота' : 'Открыть Telegram', item.telegram_url));
+          else status.textContent = 'Бот не найден';
+          addCell(row, status); addCell(row, detailsCell(item)); body.append(row);
+        }
+      }
+      const withBot = records.filter(item => item.bot_found).length;
+      countLine.textContent = `${filtered.length} показано · ${records.length} найдено · ${withBot} с публичным ботом`;
+      document.querySelector('#export-csv').disabled = filtered.length === 0;
+    }
+
+    async function search() {
+      statusLine.className = 'statusbar'; statusLine.textContent = 'Ищем в OpenStreetMap…';
+      searchButton.disabled = true;
+      try {
+        records.length = 0; render();
+        const data = await request('/api/search', {
+          category: categorySelect.value,
+          custom_name: document.querySelector('#custom-name').value,
+          city: citySelect.value === '__other__' ? cityInput.value : citySelect.value,
+          radius: Number(document.querySelector('#radius').value)
+        });
+        records.push(...data.results); render();
+        statusLine.textContent = `${data.count} организаций в радиусе ${data.radius / 1000} км от центра: ${data.city}. ${data.limited ? `Достигнут лимит ${data.max_results} объектов; уменьшите радиус или уточните категорию. ` : ''}${data.wikidata_status || 'Источник: OpenStreetMap.'}`;
+      } catch (error) {
+        statusLine.className = 'statusbar error'; statusLine.textContent = error.message;
+      } finally { searchButton.disabled = false; }
+    }
+
+    function exportCsv() {
+      const filtered = document.querySelector('#hide-bots').checked ? records.filter(item => !item.bot_found) : records;
+      const columns = [['name', 'Название'], ['category', 'Категория'], ['address', 'Адрес'], ['phone', 'Телефон'], ['email', 'Email'], ['website', 'Сайт'], ['opening_hours', 'График работы'], ['description', 'Описание'], ['brand', 'Бренд / оператор'], ['telegram_status', 'Telegram'], ['telegram_url', 'Ссылка Telegram'], ['socials', 'Социальные сети OSM'], ['wikidata', 'Данные Wikidata'], ['latitude', 'Широта'], ['longitude', 'Долгота'], ['id', 'OSM ID'], ['maps_url', 'OpenStreetMap'], ['all_tags', 'Все теги OSM']];
+      const csvValue = (item, key) => typeof item[key] === 'object' && item[key] !== null ? JSON.stringify(item[key], null, 0) : item[key];
+      const escape = value => `"${String(value ?? '').replaceAll('"', '""')}"`;
+      const csv = '\ufeff' + [columns.map(([, label]) => escape(label)).join(';'), ...filtered.map(item => columns.map(([key]) => escape(csvValue(item, key))).join(';'))].join('\r\n');
+      const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+      const anchor = document.createElement('a'); anchor.href = url; anchor.download = 'osm-prospects.csv'; anchor.click(); URL.revokeObjectURL(url);
+    }
+
+    form.addEventListener('submit', event => { event.preventDefault(); search(); });
+    categorySelect.addEventListener('change', () => {
+      const custom = categorySelect.value === 'custom_name';
+      customNameField.hidden = !custom;
+      document.querySelector('#custom-name').required = custom;
+    });
+    citySelect.addEventListener('change', () => {
+      const custom = citySelect.value === '__other__';
+      cityInput.hidden = !custom;
+      cityInput.required = custom;
+      if (!custom) cityInput.value = '';
+    });
+    document.querySelector('#hide-bots').addEventListener('change', render);
+    document.querySelector('#export-csv').addEventListener('click', exportCsv);
+    document.querySelector('#close-app').addEventListener('click', async () => {
+      try { await request('/api/stop'); } finally { document.body.innerHTML = '<main><section class="empty"><strong>Приложение закрыто</strong>Это окно можно закрыть.</section></main>'; }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Поиск клиентов OpenStreetMap
+Comment=Поиск компаний по открытым данным OpenStreetMap и Wikidata
+Exec=sh -c 'cd "$(dirname "$1")" && exec python3 app.py' _ %k
+Icon=system-search
+Terminal=true
+Categories=Office;Network;
+StartupNotify=true
