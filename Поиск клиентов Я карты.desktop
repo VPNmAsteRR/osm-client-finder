@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Поиск клиентов OpenStreetMap
+Comment=Бесплатный поиск компаний по OpenStreetMap
+Exec=/usr/bin/python3 "/home/ametistow/Проекты/Поиск клиентов Я карты/app.py"
+Terminal=true
+Categories=Office;Network;
+StartupNotify=true
